@@ -17,6 +17,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->double('phone');
+            $table->boolean('is_verified')->default(false);
+            $table->text('bio')->nullable();
+            $table->string('img')->nullable();
+            $table->float('body_weight')->nullable();
+            $table->float('height')->nullable();
+            $table->unsignedBigInteger('role_id')->default(0);
             $table->rememberToken();
             $table->timestamps();
         });

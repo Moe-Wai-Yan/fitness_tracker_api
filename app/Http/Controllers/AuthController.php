@@ -3,89 +3,153 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\VerificationCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\VerificationMail;
+use Exception;
+use Tymon\JWTAuth\Facades\JWTAuth;  
+
 
 class AuthController extends Controller
 {
-    public function register(){
-      $validator=Validator::make(request()->all(),[
-        'name'=>'required|min:3|max:50',
-        'email'=>'required|email|unique:users,email',
-        'password'=>'required',
-        'phone'=>'required|min:8'
-      ]);
-      if ($validator->fails()) {
-        return response()->json([
-            'status'=>false,
-            'message'=>'unprocessable data',
-            'errors'=>$validator->errors()
-        ],422);
-      }
+    public function register(Request $request)
+    {
+        try {
+            // Validate the request
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|min:6',
+            ]);
 
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
 
-      $user=User::create([
-        'name'=>request('name'),
-        'email'=>request('email'),
-        'phone'=>request('phone'),
-        'password'=>Hash::make(request('password')),
-        'body_weight'=>request('body_weight'),
-        'height'=>request('height'),
-        'bio'=>request('bio'),
-      ]);
+            // Extract email and password
+            $email = $request->email;
+            $password = $request->password;
 
+            // Extract name from email (everything before "@")
+            $name = explode('@', $email)[0];
 
-    // Create a token for the user
-    $token = $user->createToken('token_name')->plainTextToken;
+            // Hash the password
+            $hashedPassword = Hash::make($password);
 
+            // Create new user
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => $hashedPassword,
+                'is_verified' => false
+            ]);
 
-      return response()->json([
-        'status'=>true,
-        'message'=>'register successful',
-        'token'=>$token
-      ],201);
+            // Generate a 6-digit verification code
+            $verificationCode = mt_rand(100000, 999999);
 
-    }
+            // Set expiration time (e.g., 10 minutes from now)
+            $expiresAt = now()->addMinutes(10);
 
-    public function login(){
-$validator=Validator::make(request()->all(),[
-    'email'=>'required|email',
-    'password'=>'required',
-        ]);
+            // Store verification code in the database
+            VerificationCode::create([
+                'email' => $email,
+                'code' => $verificationCode,
+                'expires_at' => $expiresAt,
+            ]);
 
-        if ($validator->fails()) {
-           return response()->json([
-            'status'=>false,
-            'message'=>'unprocessable data',
-            'errors'=>$validator->errors()
-           ],422);
-        }
-        if (!auth()->attempt(request(['email','password']))) {
+                        // Send verification email
+            Mail::to($email)->send(new VerificationMail($verificationCode));
+
+            // Return JSON response indicating success
             return response()->json([
-                'message'=>'Unauthorized',
-                'status'=>false,
-                'errors'=>[
-                    'email' => ['These credentials do not match our records.']
-                ]
-                ],401);
-        }
-        $user=User::where('email',request('email'))->first();
-        $token=$user->createToken('token_name')->plainTextToken;
+                'message' => 'User registered successfully. Please check your email for the verification code.'
+            ], 201);
 
-        return response()->json([
-            'message'=>'login successful',
-            'status'=>true,
-            'data'=>[
-                'token'=>$token,
-                'user'=>$user
-            ]
-        ],200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Something went wrong.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function logout(){
-        auth()->user()->currentAccessToken()->delete();
-        return response()->json([],204);
+    //login function
+    public function login (Request $request) {
+        try {
+            // Validate the request
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            // Extract email and password
+            $email = $request->email;
+            $password = $request->password;
+
+            // Find the user by email
+            $user = User::where('email', $email)->first();
+
+            // Check if the user exists
+            if (!$user) {
+                return response()->json([
+                    'error' => 'User not found.'
+                ], 404);
+            }
+
+            // Check if the password is correct
+            if (!Hash::check($password, $user->password)) {
+                return response()->json([
+                    'error' => 'Invalid password.'
+                ], 401);
+            }
+
+            // Check if the user is verified
+            if (!$user->is_verified) {
+                return response()->json([
+                    'error' => 'User not verified.'
+                ], 403);
+            }
+
+            // Generate a new API token
+            $token = JWTAuth::fromUser($user);
+
+            // Return the JWT token in the response, sent as a cookie
+         return response()->json([
+            'message' => 'User login sucessfully.',
+        ])->cookie('token', $token, 60); // Token expires in 60 minutes
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Something went wrong.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    //logout function
+    public function logout(Request $request) {
+        try {
+            // Invalidate the token
+            JWTAuth::invalidate(JWTAuth::getToken());
+
+            // Clear the cookie by setting it to null
+            return response()->json([
+                'message' => 'User logged out successfully.'
+            ])->cookie('token', null, -1); // Set the cookie to expire in the past (delete it)
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Something went wrong.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
 

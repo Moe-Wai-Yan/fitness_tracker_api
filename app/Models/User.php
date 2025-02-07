@@ -33,6 +33,8 @@ class User extends Authenticatable implements JWTSubject // Implement JWTSubject
         return $this->belongsTo(Role::class);
     }
 
+
+
     /**
      * Get the identifier that will be stored in the JWT.
      *

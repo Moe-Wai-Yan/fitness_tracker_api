@@ -28,6 +28,7 @@ class AuthMiddleware
                 ], 401); // Unauthorized
             }
 
+
             // Attempt to authenticate using the token
             $user = JWTAuth::setToken($token)->authenticate();
 

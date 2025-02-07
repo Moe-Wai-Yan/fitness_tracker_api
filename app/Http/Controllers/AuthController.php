@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerificationMail;
 use Exception;
-use Tymon\JWTAuth\Facades\JWTAuth;  
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 
 class AuthController extends Controller
@@ -131,6 +131,14 @@ class AuthController extends Controller
                 'details' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getUser(){
+        $user=auth()->user();
+        return response()->json([
+            'message'=> 'User retrieved successfully!',
+            'user'=>$user,
+        ]);
     }
 
     //logout function

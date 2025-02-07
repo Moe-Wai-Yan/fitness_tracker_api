@@ -14,9 +14,10 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware([AuthMiddleware::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/users',[AuthController::class,'getUser']);
 });
 
-Route::middleware([MustBeAdminMiddleware::class,AuthMiddleware::class])->group(function(){
+Route::middleware([AuthMiddleware::class,MustBeAdminMiddleware::class])->group(function(){
     Route::resource('admin/categories',CategoryController::class);
 });
 

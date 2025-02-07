@@ -8,17 +8,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MustBeAdminMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        $user=auth()->user();
-           if(!$user || $user->role || $user->role->name!='admin'){
-            return abort(403);
-           }
-          return $next($request);
+        // Use the correct guard (e.g., 'api' for JWT auth)
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'error' => 'Unauthorized. User not authenticated.'
+            ], 401);
+        }
+
+        // You can now check if the user has the 'admin' role
+        if ($user->role_id != 1) {
+            return response()->json([
+                'error' => 'Forbidden. You must be an admin.'
+            ], 403);
+        }
+
+        return $next($request);
     }
 }
+

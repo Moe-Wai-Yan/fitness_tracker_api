@@ -21,12 +21,5 @@ class DatabaseSeeder extends Seeder
         ]);
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@gmail.com',
-            'phone' => '09759406961',
-            'password' => Hash::make('moewaiyan'),
-            'role_id' => $admin_role,
-        ]);
     }
 }

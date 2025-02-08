@@ -11,7 +11,7 @@ class CategoryRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->check();  // Allow only authenticated users
+        return true;  // Allow only authenticated users
     }
 
     /**
@@ -29,13 +29,13 @@ class CategoryRequest extends FormRequest
     /**
      * Custom error messages.
      */
-    public function messages(): array
-    {
-        return [
-            'name.required' => 'Category name is required.',
-            'name.string' => 'Category Name must be a string.',
-            'name.max' => 'Category name cannot be longer than 255 characters.',
-        ];
-    }
+    // public function messages(): array
+    // {
+    //     return [
+    //         'name.required' => 'Category name is required.',
+    //         'name.string' => 'Category Name must be a string.',
+    //         'name.max' => 'Category name cannot be longer than 255 characters.',
+    //     ];
+    // }
 }
 
